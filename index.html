@@ -408,27 +408,7 @@ docker run -d -p 8081:80 --name web2 nginx</code></pre>
 
     <!-- Step 6 -->
     <div class="section">
-        <h3><span class="step-badge">6</span> เพิ่ม Location Proxy ในตัวเฟือง <span class="tag">Advanced</span></h3>
-        <p class="section-desc">กรณีอยากลอง Location ให้เพิ่มเข้าไปในส่วน Advanced ของ Proxy Host ใน NPM UI</p>
-        <div class="code-container">
-            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-            <pre><code>location /web2/ {
-    proxy_pass http://10.0.2.15:8081/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-
-location = /web2 {
-    return 301 $scheme://$http_host/web2/;
-}</code></pre>
-        </div>
-    </div>
-
-    <!-- Step 7 -->
-    <div class="section">
-        <h3><span class="step-badge">7</span> สร้าง SSL Certificate + ดึงไฟล์มา Windows <span class="tag blue">SSL + SCP</span></h3>
+        <h3><span class="step-badge">6</span> สร้าง SSL Certificate + ดึงไฟล์มา Windows <span class="tag blue">SSL + SCP</span></h3>
         <p class="section-desc">สร้าง Self-Signed Certificate บน AlmaLinux ก่อน แล้วค่อยดึงออกมาไว้ที่ Downloads</p>
         <div class="code-container">
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
@@ -447,7 +427,7 @@ scp -P 2222 root@127.0.0.1:/tmp/demo.crt $env:USERPROFILE\Downloads\demo.crt</co
 
     <!-- Step 8 -->
     <div class="section">
-        <h3><span class="step-badge">8</span> สร้างโฟลเดอร์ /web2 ใน Container <span class="tag">Docker</span></h3>
+        <h3><span class="step-badge">7</span> สร้างโฟลเดอร์ /web2 ใน Container <span class="tag">Docker</span></h3>
         <p class="section-desc">สร้างโฟลเดอร์และไฟล์ index.html ภายใน Container web2</p>
         <div class="code-container">
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
