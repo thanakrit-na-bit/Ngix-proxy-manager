@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nginx Proxy Manager Setup & Command Guide</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-amber: #fbbf24;
+            --code-bg: #090d16;
+            --text-main: #f8fafc;
+            --text-sub: #a5b4c2;
+            --header-bg: rgba(56, 189, 248, 0.1);
+            --row-alt: rgba(15, 23, 42, 0.4);
+            --row-hover: rgba(56, 189, 248, 0.07);
+            --radius: 12px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+            --theme-btn-bg: rgba(148, 163, 184, 0.15);
+            --theme-btn-bd: #334155;
+        }
+        html[data-theme="light"] {
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0;
+            --accent-blue: #0284c7;
+            --accent-green: #16a34a;
+            --accent-amber: #d97706;
+            --code-bg: #0f172a;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --header-bg: linear-gradient(135deg, rgba(2, 132, 199, 0.08), rgba(22, 163, 74, 0.05));
+            --row-alt: #f8fafc;
+            --row-hover: #e0f2fe;
+            --shadow: 0 4px 20px rgba(15, 23, 42, 0.08);
+            --theme-btn-bg: #e2e8f0;
+            --theme-btn-bd: #cbd5e1;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 20% 10%, rgba(56, 189, 248, 0.08), transparent 40%),
+                              radial-gradient(circle at 80% 90%, rgba(74, 222, 128, 0.05), transparent 40%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            margin: 0;
+            padding: 3rem 1.5rem;
+            display: flex;
+            justify-content: center;
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .container {
+            max-width: 920px;
+            width: 100%;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 1rem;
+            background: var(--header-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+        }
+        .theme-btn {
+            position: fixed;
+            top: 1.2rem;
+            right: 1.2rem;
+            z-index: 100;
+            background: var(--theme-btn-bg);
+            color: var(--text-main);
+            border: 1px solid var(--theme-btn-bd);
+            border-radius: 999px;
+            padding: 0.45rem 0.95rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: var(--shadow);
+        }
+        .theme-btn:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        .theme-btn .icon { font-size: 1.05rem; line-height: 1; }
+        h1 {
+            color: var(--accent-blue);
+            font-size: 2rem;
+            margin: 0 0 0.5rem;
+            letter-spacing: 0.5px;
+        }
+        p.subtitle { color: var(--text-sub); margin: 0; font-size: 1rem; }
+
+        .section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 1.6rem 1.6rem 1.7rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.3s ease;
+        }
+        .section:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+        .section h3 {
+            margin-top: 0;
+            margin-bottom: 0.4rem;
+            color: var(--text-main);
+            font-size: 1.15rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .step-badge {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), #0ea5e9);
+            color: #001122;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        .section-desc {
+            color: var(--text-sub);
+            font-size: 0.9rem;
+            margin: 0 0 0.4rem 2.6rem;
+        }
+        .tag {
+            display: inline-block;
+            background: rgba(74, 222, 128, 0.12);
+            color: var(--accent-green);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 999px;
+            padding: 0.1rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+        .tag.blue {
+            background: rgba(56, 189, 248, 0.12);
+            color: var(--accent-blue);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+        .tag.amber {
+            background: rgba(251, 191, 36, 0.12);
+            color: var(--accent-amber);
+            border-color: rgba(251, 191, 36, 0.3);
+        }
+
+        .code-container {
+            position: relative;
+            margin-top: 0.9rem;
+        }
+        pre {
+            background-color: var(--code-bg);
+            color: #e2e8f0;
+            padding: 2.6rem 1rem 1rem;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            border: 1px solid var(--card-border);
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.55;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--accent-blue);
+            color: #001122;
+            border: none;
+            padding: 0.35rem 0.9rem;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+        }
+        .copy-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+        .copy-btn.copied { background: var(--accent-green); box-shadow: 0 2px 8px rgba(74, 222, 128, 0.3); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.9rem;
+            font-size: 0.9rem;
+        }
+        th, td {
+            border: 1px solid var(--card-border);
+            padding: 0.55rem 0.7rem;
+            text-align: left;
+        }
+        th {
+            background: var(--bg-color);
+            color: var(--accent-blue);
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        tbody tr:nth-child(even) { background: var(--row-alt); }
+        tbody tr:hover { background: var(--row-hover); }
+        td { color: var(--text-main); }
+        td code, .note code, .inline-hint code {
+            background: var(--code-bg);
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+            border: 1px solid var(--card-border);
+        }
+
+        .note {
+            background: #14b8a61a;
+            border-left: 4px solid #14b8a6;
+            padding: 0.7rem 1rem;
+            border-radius: 4px;
+            margin-top: 0.9rem;
+            color: var(--text-main);
+            font-size: 0.9rem;
+        }
+        .note strong { color: #2dd4bf; }
+
+        .inline-hint {
+            color: var(--text-sub);
+            font-size: 0.9rem;
+            margin-top: 0.3rem;
+        }
+        .inline-hint strong { color: var(--accent-blue); font-weight: 600; }
+
+        footer {
+            text-align: center;
+            color: var(--text-sub);
+            font-size: 0.8rem;
+            margin-top: 2.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--card-border);
+        }
+        @media (max-width: 600px) {
+            body { padding: 1.5rem 0.8rem; }
+            th, td { font-size: 0.8rem; padding: 0.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" aria-label="สลับธีม">
+            <span class="icon" id="themeIcon">🌙</span>
+            <span id="themeLabel">Dark</span>
+        </button>
+        <h1>Nginx Proxy Manager Setup &amp; Command Guide</h1>
+        <p class="subtitle">คู่มือรวมสคริปต์คำสั่งสำหรับการติดตั้งและตั้งค่า NPM + AlmaLinux 9<br>(คลิกปุ่ม Copy เพื่อคัดลอกคำสั่งไปใช้ได้ทันที)</p>
+    </header>
+
+    <!-- ตารางพอร์ต -->
+    <div class="section">
+        <h3><span class="step-badge">0</span> ตารางการ Forward Port <span class="tag amber">Reference</span></h3>
+        <p class="section-desc">ตารางที่ถูกต้องสมบูรณ์สำหรับเซฟใช้งาน (HostIP 127.0.0.1 &rarr; GuestIP 10.0.2.15)</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Protocol</th>
+                    <th>HostIP</th>
+                    <th>HostPort</th>
+                    <th>GuestIP</th>
+                    <th>GuestPort</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>HTTP</td><td>TCP</td><td>127.0.0.1</td><td>80</td><td>10.0.2.15</td><td>80</td></tr>
+                <tr><td>HTTPS</td><td>TCP</td><td>127.0.0.1</td><td>443</td><td>10.0.2.15</td><td>443</td></tr>
+                <tr><td>STREAM</td><td>TCP</td><td>127.0.0.1</td><td>2022</td><td>10.0.2.15</td><td>2022</td></tr>
+                <tr><td>UI</td><td>TCP</td><td>127.0.0.1</td><td>81</td><td>10.0.2.15</td><td>81</td></tr>
+                <tr><td>SSH</td><td>TCP</td><td>127.0.0.1</td><td>2222</td><td>10.0.2.15</td><td>22</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="section">
+        <h3><span class="step-badge">1</span> ติดตั้งเครื่องมือพื้นฐาน + ตั้งค่า SSH &amp; Firewall <span class="tag">AlmaLinux</span></h3>
+        <p class="section-desc">รันบน Terminal ของ AlmaLinux (root)</p>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code># ติดตั้งแพ็กเกจที่จำเป็น
+dnf install -y curl wget nano git tar dnf-plugins-core openssh-server
+
+# เปิดบริการ SSH และอนุญาต Root Login
+systemctl enable --now sshd
+echo "PermitRootLogin yes" | sudo tee /etc/ssh/sshd_config.d/root.conf
+systemctl restart sshd
+
+# ปรับ SELinux และ Kernel IP Forwarding
+setenforce 0
+sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
+echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.d/99-ipforward.conf
+sysctl -p /etc/sysctl.d/99-ipforward.conf
+
+# เปิดพอร์ตบน Firewall (80, 81, 443, 2022)
+firewall-cmd --add-port=80/tcp --permanent
+firewall-cmd --add-port=81/tcp --permanent
+firewall-cmd --add-port=443/tcp --permanent
+firewall-cmd --add-port=2022/tcp --permanent
+firewall-cmd --reload
+
+systemctl status sshd</code></pre>
+        </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="section">
+        <h3><span class="step-badge">2</span> ติดตั้ง Docker Engine &amp; Docker Compose <span class="tag">AlmaLinux</span></h3>
+        <p class="section-desc">รันบน Terminal ของ AlmaLinux (root)</p>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code># เพิ่ม Docker Repo และติดตั้ง
+dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+# หรือถ้าเจอปัญหาให้ใช้แบบนี้แทน:
+dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+# เปิดใช้งาน Docker
+systemctl enable --now docker
+
+docker --version</code></pre>
+        </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="section">
+        <h3><span class="step-badge">3</span> ติดตั้ง Nginx Proxy Manager (NPM) <span class="tag blue">Docker</span></h3>
+        <p class="section-desc">สร้าง Directory และ Compose File แล้วรัน Container</p>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code>mkdir -p ~/nginx-proxy-manager
+cd ~/nginx-proxy-manager</code></pre>
+        </div>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code>cat &lt;&lt; 'EOF' &gt; docker-compose.yml
+version: '3.8'
+services:
+  app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+      - '2022:2022'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+EOF
+
+# สั่งรัน NPM Container
+docker compose up -d
+
+docker ps</code></pre>
+        </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="section">
+        <h3><span class="step-badge">4</span> รัน Web Services ปลายทางสำหรับทดสอบ L7 <span class="tag">Docker</span></h3>
+        <p class="section-desc">สร้าง Container demo-web และ web2 แล้วเปิดเบราว์เซอร์ดู NPM UI</p>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code>docker run -d -p 8080:80 --name demo-web nginx
+docker run -d -p 8081:80 --name web2 nginx</code></pre>
+        </div>
+        <p class="inline-hint">จากนั้นเปิดเบราว์เซอร์ไปที่ &rarr; <strong>http://127.0.0.1:81</strong></p>
+        <div class="note"><strong>ค่าเริ่มต้น NPM UI:</strong> user = <code>admin@example.com</code> / pass = <code>changeme</code> (บังคับเปลี่ยนครั้งแรกเมื่อล็อกอิน)</div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="section">
+        <h3><span class="step-badge">5</span> วิธีแก้ไข Hosts บน Windows <span class="tag blue">Windows</span></h3>
+        <p class="section-desc">เปิด Notepad แบบ Run as Administrator &rarr; File &rarr; Open... ไปที่ <code>C:\Windows\System32\drivers\etc\hosts</code> แล้วเพิ่มบรรทัดเหล่านี้</p>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code>127.0.0.1 demo.test
+127.0.0.1 web2.test
+127.0.0.1 redirect.test</code></pre>
+        </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="section">
+        <h3><span class="step-badge">6</span> เพิ่ม Location Proxy ในตัวเฟือง <span class="tag">Advanced</span></h3>
+        <p class="section-desc">กรณีอยากลอง Location ให้เพิ่มเข้าไปในส่วน Advanced ของ Proxy Host ใน NPM UI</p>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code>location /web2/ {
+    proxy_pass http://10.0.2.15:8081/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+location = /web2 {
+    return 301 $scheme://$http_host/web2/;
+}</code></pre>
+        </div>
+    </div>
+
+    <!-- Step 7 -->
+    <div class="section">
+        <h3><span class="step-badge">7</span> สร้าง SSL Certificate + ดึงไฟล์มา Windows <span class="tag blue">SSL + SCP</span></h3>
+        <p class="section-desc">สร้าง Self-Signed Certificate บน AlmaLinux ก่อน แล้วค่อยดึงออกมาไว้ที่ Downloads</p>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code># สร้าง Self-Signed Certificate เก็บไว้ที่ /tmp ก่อนดึงออก
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /tmp/demo.key -out /tmp/demo.crt \
+  -subj "/CN=demo.test"</code></pre>
+        </div>
+        <p class="inline-hint">ดึงไฟล์ Key/Cert ลง Windows (รันใน PowerShell):</p>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code>scp -P 2222 root@127.0.0.1:/tmp/demo.key $env:USERPROFILE\Downloads\demo.key
+scp -P 2222 root@127.0.0.1:/tmp/demo.crt $env:USERPROFILE\Downloads\demo.crt</code></pre>
+        </div>
+    </div>
+
+    <!-- Step 8 -->
+    <div class="section">
+        <h3><span class="step-badge">8</span> สร้างโฟลเดอร์ /web2 ใน Container <span class="tag">Docker</span></h3>
+        <p class="section-desc">สร้างโฟลเดอร์และไฟล์ index.html ภายใน Container web2</p>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code>docker exec -it web2 bash</code></pre>
+        </div>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code>cd /usr/share/nginx/html
+mkdir -p web2
+echo '&lt;h1&gt;Hello from web2 folder inside container&lt;/h1&gt;' > web2/index.html
+exit</code></pre>
+        </div>
+        <p class="inline-hint">เช็กว่าสำเร็จหรือไม่:</p>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code>docker exec -it web2 cat /usr/share/nginx/html/web2/index.html</code></pre>
+        </div>
+    </div>
+
+    <footer>คู่มือสำหรับการพรีเซนต์และใช้งานจริง &mdash; Nginx Proxy Manager + AlmaLinux 9</footer>
+</div>
+
+<script>
+function copyCode(button) {
+    const code = button.nextElementSibling.innerText;
+    navigator.clipboard.writeText(code).then(() => {
+        button.innerText = 'Copied!';
+        button.classList.add('copied');
+        setTimeout(() => {
+            button.innerText = 'Copy';
+            button.classList.remove('copied');
+        }, 2000);
+    });
+}
+
+(function initTheme() {
+    const saved = localStorage.getItem('npm-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = saved || (prefersDark ? 'dark' : 'light');
+    applyTheme(theme);
+})();
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const icon = document.getElementById('themeIcon');
+    const label = document.getElementById('themeLabel');
+    if (theme === 'light') {
+        icon.textContent = '☀️';
+        label.textContent = 'Light';
+    } else {
+        icon.textContent = '🌙';
+        label.textContent = 'Dark';
+    }
+    localStorage.setItem('npm-theme', theme);
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    applyTheme(current === 'light' ? 'dark' : 'light');
+}
+</script>
+
+</body>
+</html>

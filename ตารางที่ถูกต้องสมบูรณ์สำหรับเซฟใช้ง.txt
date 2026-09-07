@@ -1,0 +1,116 @@
+ตารางที่ถูกต้องสมบูรณ์สำหรับเซฟใช้งาน:
+Name	  Protocol	HostIP		  HostPort 	GuestIP		  GuestPort
+HTTP	  TCP		    127.0.0.1	  80		    10.0.2.15	  80
+HTTPS	  TCP		    127.0.0.1	  443		    10.0.2.15   443
+STREAM	TCP		    127.0.0.1	  2022		  10.0.2.15	  2022
+UI	    TCP		    127.0.0.1	  81		    10.0.2.15	  81
+SSH	    TCP		    127.0.0.1	  2222		  10.0.2.15	  22
+
+1. ติดตั้งเครื่องมือพื้นฐาน + ตั้งค่า SSH & Firewall
+# ติดตั้งแพ็กเกจที่จำเป็น
+dnf install -y curl wget nano git tar dnf-plugins-core openssh-server
+
+# เปิดบริการ SSH และอนุญาต Root Login
+systemctl enable --now sshd
+echo "PermitRootLogin yes" | sudo tee /etc/ssh/sshd_config.d/root.conf
+systemctl restart sshd
+
+# ปรับ SELinux และ Kernel IP Forwarding
+setenforce 0
+sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
+echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.d/99-ipforward.conf
+sysctl -p /etc/sysctl.d/99-ipforward.conf
+
+# เปิดพอร์ตบน Firewall (80, 81, 443, 2022)
+firewall-cmd --add-port=80/tcp --permanent
+firewall-cmd --add-port=81/tcp --permanent
+firewall-cmd --add-port=443/tcp --permanent
+firewall-cmd --add-port=2022/tcp --permanent
+firewall-cmd --reload
+
+systemctl status sshd เช็คสถานะ
+
+2. ติดตั้ง Docker Engine & Docker Compose
+# เพิ่ม Docker Repo และติดตั้ง
+dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+# หรือถ้าเจอปัญหาให้ใช้แบบนี้แทน:
+dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+# เปิดใช้งาน Docker
+systemctl enable --now docker
+
+docker --version พิมเช็คว่ามี docker ในเครื่องแล้ว
+
+3. ติดตั้ง Nginx Proxy Manager (NPM)
+# สร้าง Directory และ Compose File
+mkdir -p ~/nginx-proxy-manager && cd ~/nginx-proxy-manager
+cat << 'EOF' > docker-compose.yml
+version: '3.8'
+services:
+  app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+      - '2022:2022'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+EOF
+
+# สั่งรัน NPM Container
+docker compose up -d
+
+docker ps เช็คว่า มีตัวไหนขึ้นบ้าง
+
+4. รัน Web Services ปลายทางสำหรับทดสอบ L7
+docker run -d -p 8080:80 --name demo-web nginx
+docker run -d -p 8081:80 --name web2 nginx
+
+พิมเสร็จ ให้พิม ใร browse http://127.0.0.1:81
+
+วิธีแก้ไขบน Windows (เพิ่ม web2.test)
+เปิด notepad runadminisitor
+ไปที่เมนู File และ ไปที่ Open...
+C:\Windows\System32\drivers\etc\hosts
+127.0.0.1 demo.test
+127.0.0.1 web2.test
+127.0.0.1 redirect.test
+
+เพิ่ม path ที่ตัวเฟืองในกรณี อยากลอง location
+location /web2/ {
+    proxy_pass http://10.0.2.15:8081/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+location = /web2 {
+    return 301 $scheme://$http_host/web2/;
+}
+1. เพิ่มคำสั่งสร้าง SSL Certificate บน AlmaLinux ก่อนดึงไฟล์
+# สร้าง Self-Signed Certificate เก็บไว้ที่ /tmp ก่อนดึงออก
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /tmp/demo.key -out /tmp/demo.crt \
+  -subj "/CN=demo.test"
+
+1. ดึงไฟล์ Key: รันใน powershell
+scp -P 2222 root@127.0.0.1:/tmp/demo.key $env:USERPROFILE\Downloads\demo.key
+scp -P 2222 root@127.0.0.1:/tmp/demo.crt $env:USERPROFILE\Downloads\demo.crt
+
+สร้างโฟลเดอร์ /web2 ขึ้นมาจริงๆ ใน Container
+docker exec -it web2 bash
+
+สร้างโฟลเดอร์และไฟล์แบบไม่มีเครื่องหมาย !
+cd /usr/share/nginx/html
+mkdir -p web2
+echo '<h1>Hello from web2 folder inside container</h1>' > web2/index.html
+exit
+
+วิธีเช็กว่าสำเร็จหรือไม่
+docker exec -it web2 cat /usr/share/nginx/html/web2/index.html
+
