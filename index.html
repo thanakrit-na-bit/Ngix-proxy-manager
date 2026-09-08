@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nginx Proxy Manager Setup & Command Guide</title>
+    <title>Nginx Proxy Manager Setup & Command Guide (Static IP: 172.25.18.50)</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -269,32 +269,50 @@
             <span id="themeLabel">Dark</span>
         </button>
         <h1>Nginx Proxy Manager Setup &amp; Command Guide</h1>
-        <p class="subtitle">คู่มือรวมสคริปต์คำสั่งสำหรับการติดตั้งและตั้งค่า NPM + AlmaLinux 9<br>(คลิกปุ่ม Copy เพื่อคัดลอกคำสั่งไปใช้ได้ทันที)</p>
+        <p class="subtitle">คู่มือรวมสคริปต์คำสั่งสำหรับการติดตั้งและตั้งค่า NPM + AlmaLinux 9 (Bridge Mode Static IP: 172.25.18.50)<br>(คลิกปุ่ม Copy เพื่อคัดลอกคำสั่งไปใช้ได้ทันที)</p>
     </header>
 
-    <!-- ตารางพอร์ต -->
+    <!-- Step 0: ตารางพอร์ต -->
     <div class="section">
-        <h3><span class="step-badge">0</span> ตารางการ Forward Port <span class="tag amber">Reference</span></h3>
-        <p class="section-desc">ตารางที่ถูกต้องสมบูรณ์สำหรับเซฟใช้งาน (HostIP 127.0.0.1 &rarr; GuestIP 10.0.2.15)</p>
+        <h3><span class="step-badge">0</span> ตาราง Reference พอร์ตใน Bridge Mode <span class="tag amber">Static IP: 172.25.18.50</span></h3>
+        <p class="section-desc">ตารางที่ถูกต้องสมบูรณ์สำหรับเซฟใช้งาน (IP เครื่อง AlmaLinux ล็อกถาวร: 172.25.18.50)</p>
         <table>
             <thead>
                 <tr>
-                    <th>Name</th>
+                    <th>Service</th>
                     <th>Protocol</th>
-                    <th>HostIP</th>
-                    <th>HostPort</th>
-                    <th>GuestIP</th>
-                    <th>GuestPort</th>
+                    <th>NPM / AlmaLinux IP</th>
+                    <th>Port</th>
                 </tr>
             </thead>
             <tbody>
-                <tr><td>HTTP</td><td>TCP</td><td>127.0.0.1</td><td>80</td><td>10.0.2.15</td><td>80</td></tr>
-                <tr><td>HTTPS</td><td>TCP</td><td>127.0.0.1</td><td>443</td><td>10.0.2.15</td><td>443</td></tr>
-                <tr><td>STREAM</td><td>TCP</td><td>127.0.0.1</td><td>2022</td><td>10.0.2.15</td><td>2022</td></tr>
-                <tr><td>UI</td><td>TCP</td><td>127.0.0.1</td><td>81</td><td>10.0.2.15</td><td>81</td></tr>
-                <tr><td>SSH</td><td>TCP</td><td>127.0.0.1</td><td>2222</td><td>10.0.2.15</td><td>22</td></tr>
+                <tr><td>HTTP</td><td>TCP</td><td>172.25.18.50</td><td>80</td></tr>
+                <tr><td>HTTPS</td><td>TCP</td><td>172.25.18.50</td><td>443</td></tr>
+                <tr><td>STREAM</td><td>TCP</td><td>172.25.18.50</td><td>2022</td></tr>
+                <tr><td>UI</td><td>TCP</td><td>172.25.18.50</td><td>81</td></tr>
+                <tr><td>SSH</td><td>TCP</td><td>172.25.18.50</td><td>22</td></tr>
             </tbody>
         </table>
+    </div>
+
+    <!-- Step 0.5: ตั้งค่า Static IP -->
+    <div class="section">
+        <h3><span class="step-badge">0.5</span> บังคับตั้งค่า Static IP เป็น 172.25.18.50 <span class="tag">AlmaLinux Network</span></h3>
+        <p class="section-desc">รันคำสั่งนี้บน Terminal ของ AlmaLinux (root) เพื่อล็อก IP ให้ไม่เปลี่ยนเวลา Reboot</p>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code># ตั้งค่า Static IP 172.25.18.50 บนการเชื่อมต่อ enp0s3
+sudo nmcli con mod "enp0s3" ipv4.addresses 172.25.18.50/24
+sudo nmcli con mod "enp0s3" ipv4.gateway 172.25.18.1
+sudo nmcli con mod "enp0s3" ipv4.dns "8.8.8.8 1.1.1.1"
+sudo nmcli con mod "enp0s3" ipv4.method manual
+
+# รีสตาร์ตการเชื่อมต่อเน็ตเวิร์ก
+sudo nmcli con down "enp0s3" && sudo nmcli con up "enp0s3"
+
+# ตรวจสอบ IP Address (ต้องแสดงเป็น 172.25.18.50)
+ip a</code></pre>
+        </div>
     </div>
 
     <!-- Step 1 -->
@@ -390,7 +408,7 @@ docker ps</code></pre>
             <pre><code>docker run -d -p 8080:80 --name demo-web nginx
 docker run -d -p 8081:80 --name web2 nginx</code></pre>
         </div>
-        <p class="inline-hint">จากนั้นเปิดเบราว์เซอร์ไปที่ &rarr; <strong>http://127.0.0.1:81</strong></p>
+        <p class="inline-hint">จากนั้นเปิดเบราว์เซอร์ไปที่ &rarr; <strong>http://172.25.18.50:81</strong></p>
         <div class="note"><strong>ค่าเริ่มต้น NPM UI:</strong> user = <code>admin@example.com</code> / pass = <code>changeme</code> (บังคับเปลี่ยนครั้งแรกเมื่อล็อกอิน)</div>
     </div>
 
@@ -400,9 +418,9 @@ docker run -d -p 8081:80 --name web2 nginx</code></pre>
         <p class="section-desc">เปิด Notepad แบบ Run as Administrator &rarr; File &rarr; Open... ไปที่ <code>C:\Windows\System32\drivers\etc\hosts</code> แล้วเพิ่มบรรทัดเหล่านี้</p>
         <div class="code-container">
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-            <pre><code>127.0.0.1 demo.test
-127.0.0.1 web2.test
-127.0.0.1 redirect.test</code></pre>
+            <pre><code>172.25.18.50 demo.test
+172.25.18.50 web2.test
+172.25.18.50 redirect.test</code></pre>
         </div>
     </div>
 
@@ -420,12 +438,12 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
         <p class="inline-hint">ดึงไฟล์ Key/Cert ลง Windows (รันใน PowerShell):</p>
         <div class="code-container">
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-            <pre><code>scp -P 2222 root@127.0.0.1:/tmp/demo.key $env:USERPROFILE\Downloads\demo.key
-scp -P 2222 root@127.0.0.1:/tmp/demo.crt $env:USERPROFILE\Downloads\demo.crt</code></pre>
+            <pre><code>scp root@172.25.18.50:/tmp/demo.key $env:USERPROFILE\Downloads\demo.key
+scp root@172.25.18.50:/tmp/demo.crt $env:USERPROFILE\Downloads\demo.crt</code></pre>
         </div>
     </div>
 
-    <!-- Step 8 -->
+    <!-- Step 7 -->
     <div class="section">
         <h3><span class="step-badge">7</span> สร้างโฟลเดอร์ /web2 ใน Container <span class="tag">Docker</span></h3>
         <p class="section-desc">สร้างโฟลเดอร์และไฟล์ index.html ภายใน Container web2</p>
@@ -447,7 +465,7 @@ exit</code></pre>
         </div>
     </div>
 
-    <footer>คู่มือสำหรับการพรีเซนต์และใช้งานจริง &mdash; Nginx Proxy Manager + AlmaLinux 9</footer>
+    <footer>คู่มือสำหรับการพรีเซนต์และใช้งานจริง &mdash; Nginx Proxy Manager + AlmaLinux 9 (Static IP: 172.25.18.50)</footer>
 </div>
 
 <script>
