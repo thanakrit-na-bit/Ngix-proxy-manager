@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nginx Proxy Manager Setup & Command Guide</title>
+    <title>Nginx Proxy Manager Setup & Command Guide (NAT Mode)</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -269,13 +269,13 @@
             <span id="themeLabel">Dark</span>
         </button>
         <h1>Nginx Proxy Manager Setup &amp; Command Guide</h1>
-        <p class="subtitle">คู่มือรวมสคริปต์คำสั่งสำหรับการติดตั้งและตั้งค่า NPM + AlmaLinux 9<br>(คลิกปุ่ม Copy เพื่อคัดลอกคำสั่งไปใช้ได้ทันที)</p>
+        <p class="subtitle">คู่มือรวมสคริปต์คำสั่งสำหรับการติดตั้งและตั้งค่า NPM + AlmaLinux 9 (NAT Mode)<br>(คลิกปุ่ม Copy เพื่อคัดลอกคำสั่งไปใช้ได้ทันที)</p>
     </header>
 
-    <!-- ตารางพอร์ต -->
+    <!-- Step 0: ตาราง Forward Port -->
     <div class="section">
-        <h3><span class="step-badge">0</span> ตารางการ Forward Port <span class="tag amber">Reference</span></h3>
-        <p class="section-desc">ตารางที่ถูกต้องสมบูรณ์สำหรับเซฟใช้งาน (HostIP 127.0.0.1 &rarr; GuestIP 10.0.2.15)</p>
+        <h3><span class="step-badge">0</span> ตารางการ Forward Port <span class="tag amber">NAT Mode</span></h3>
+        <p class="section-desc">ตาราง Port Forwarding บน VirtualBox/VMware (HostIP 127.0.0.1 &rarr; GuestIP 10.0.2.15)</p>
         <table>
             <thead>
                 <tr>
@@ -290,9 +290,9 @@
             <tbody>
                 <tr><td>HTTP</td><td>TCP</td><td>127.0.0.1</td><td>80</td><td>10.0.2.15</td><td>80</td></tr>
                 <tr><td>HTTPS</td><td>TCP</td><td>127.0.0.1</td><td>443</td><td>10.0.2.15</td><td>443</td></tr>
-                <tr><td>STREAM</td><td>TCP</td><td>127.0.0.1</td><td>2022</td><td>10.0.2.15</td><td>2022</td></tr>
+                <tr><td>STREAM</td><td>TCP</td><td>127.0.0.1</td><td>2222</td><td>10.0.2.15</td><td>2222</td></tr>
                 <tr><td>UI</td><td>TCP</td><td>127.0.0.1</td><td>81</td><td>10.0.2.15</td><td>81</td></tr>
-                <tr><td>SSH</td><td>TCP</td><td>127.0.0.1</td><td>2222</td><td>10.0.2.15</td><td>22</td></tr>
+                <tr><td>SSH</td><td>TCP</td><td>127.0.0.1</td><td>2022</td><td>10.0.2.15</td><td>22</td></tr>
             </tbody>
         </table>
     </div>
@@ -317,11 +317,11 @@ sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
 echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.d/99-ipforward.conf
 sysctl -p /etc/sysctl.d/99-ipforward.conf
 
-# เปิดพอร์ตบน Firewall (80, 81, 443, 2022)
+# เปิดพอร์ตบน Firewall (80, 81, 443, 2222)
 firewall-cmd --add-port=80/tcp --permanent
 firewall-cmd --add-port=81/tcp --permanent
 firewall-cmd --add-port=443/tcp --permanent
-firewall-cmd --add-port=2022/tcp --permanent
+firewall-cmd --add-port=2222/tcp --permanent
 firewall-cmd --reload
 
 systemctl status sshd</code></pre>
@@ -368,7 +368,7 @@ services:
       - '80:80'
       - '81:81'
       - '443:443'
-      - '2022:2022'
+      - '2222:2222'
     volumes:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
@@ -420,12 +420,12 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
         <p class="inline-hint">ดึงไฟล์ Key/Cert ลง Windows (รันใน PowerShell):</p>
         <div class="code-container">
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-            <pre><code>scp -P 2222 root@127.0.0.1:/tmp/demo.key $env:USERPROFILE\Downloads\demo.key
-scp -P 2222 root@127.0.0.1:/tmp/demo.crt $env:USERPROFILE\Downloads\demo.crt</code></pre>
+            <pre><code>scp -P 2022 root@127.0.0.1:/tmp/demo.key $env:USERPROFILE\Downloads\demo.key
+scp -P 2022 root@127.0.0.1:/tmp/demo.crt $env:USERPROFILE\Downloads\demo.crt</code></pre>
         </div>
     </div>
 
-    <!-- Step 8 -->
+    <!-- Step 7 -->
     <div class="section">
         <h3><span class="step-badge">7</span> สร้างโฟลเดอร์ /web2 ใน Container <span class="tag">Docker</span></h3>
         <p class="section-desc">สร้างโฟลเดอร์และไฟล์ index.html ภายใน Container web2</p>
@@ -447,7 +447,7 @@ exit</code></pre>
         </div>
     </div>
 
-    <footer>คู่มือสำหรับการพรีเซนต์และใช้งานจริง &mdash; Nginx Proxy Manager + AlmaLinux 9</footer>
+    <footer>คู่มือสำหรับการพรีเซนต์และใช้งานจริง &mdash; Nginx Proxy Manager + AlmaLinux 9 (NAT Mode)</footer>
 </div>
 
 <script>
